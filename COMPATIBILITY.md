@@ -118,7 +118,6 @@ _When `format=png`_ (default if not specified)
 - averageOutsidePercentile
 - events
 - exponentialMovingAverage
-- filterSeries
 - groupByTags
 - highest
 - holtWintersConfidenceArea
