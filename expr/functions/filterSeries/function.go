@@ -2,6 +2,7 @@ package filterSeries
 
 import (
 	"fmt"
+	"math"
 
 	"github.com/bookingcom/carbonapi/expr/helper"
 	"github.com/bookingcom/carbonapi/expr/interfaces"
@@ -10,6 +11,7 @@ import (
 )
 
 // XXX(asurikov): graphite-web supports a number of undocumented functions here.
+// XXX(asurikov): what does graphite-web return for empty input? Inf vs NaN.
 var supportedFuncs = map[string]func([]float64, []bool) float64{
 	"max": helper.MaxValue,
 	"min": helper.MinValue,
@@ -25,12 +27,12 @@ var supportedFuncs = map[string]func([]float64, []bool) float64{
 
 // XXX(asurikov): does float comparison in Go work the same way as in Python?
 var supportedOps = map[string]func(float64, float64) bool{
-	"<":  func(a, b float64) bool { return a < b },
-	">":  func(a, b float64) bool { return a > b },
-	"<=": func(a, b float64) bool { return a <= b },
-	">=": func(a, b float64) bool { return a >= b },
-	"=":  func(a, b float64) bool { return a == b },
-	"!=": func(a, b float64) bool { return a != b },
+	"<":  func(a, b float64) bool { return !math.IsNaN(a) && a < b },
+	">":  func(a, b float64) bool { return !math.IsNaN(a) && a > b },
+	"<=": func(a, b float64) bool { return !math.IsNaN(a) && a <= b },
+	">=": func(a, b float64) bool { return !math.IsNaN(a) && a >= b },
+	"=":  func(a, b float64) bool { return !math.IsNaN(a) && a == b },
+	"!=": func(a, b float64) bool { return !math.IsNaN(a) && a != b },
 }
 
 type filterSeries struct {
@@ -71,6 +73,7 @@ func (f *filterSeries) Do(e parser.Expr, from, until int32, values map[parser.Me
 
 	filtered := make([]*types.MetricData, 0, len(args))
 	for _, a := range args {
+		// The second argument to cmpf must not be a NaN.
 		if n := aggf(a.Values, a.IsAbsent); cmpf(n, threshold) {
 			filtered = append(filtered, a)
 		}
